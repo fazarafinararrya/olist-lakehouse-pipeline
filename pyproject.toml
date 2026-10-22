@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "olist-pipeline"
+version = "0.1.0"
+description = "Batch lakehouse pipeline for the Olist Brazilian e-commerce dataset (PySpark, S3, Prefect)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "pyspark==3.5.3",
+  "prefect>=3.0,<4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

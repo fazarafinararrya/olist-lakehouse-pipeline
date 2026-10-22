@@ -1,0 +1,29 @@
+# data (Olist is public, but keep the repo light)
+data/source/*.csv
+data/lake/*
+!data/lake/.gitkeep
+data/reports/*
+!data/reports/.gitkeep
+
+# python
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# spark
+spark-warehouse/
+metastore_db/
+derby.log
+
+# terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/terraform.tfvars
+terraform/crash.log
+
+# secrets
+.env
+*.pem
