@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from pyspark.sql import SparkSession
 
-from olist_pipeline import quality, raw, silver
+from olist_pipeline import catalog, quality, raw, silver
 from olist_pipeline.config import SOURCE_FILES, Settings
 
 log = logging.getLogger(__name__)
@@ -51,3 +51,14 @@ def run_quality(
     if fail_on_error:
         quality.raise_on_errors(results)
     return results
+
+
+
+def run_catalog(spark: SparkSession, settings: Settings) -> list[catalog.RegisteredTable]:
+    """Register the silver tables in the Glue Data Catalog (AWS only)."""
+    if not settings.lake_silver.startswith("s3a://"):
+        raise ValueError(
+            "the Glue catalog points at S3 locations; set LAKE_SILVER to an s3a:// URI "
+            f"(currently {settings.lake_silver!r})"
+        )
+    return catalog.register_silver_tables(spark, settings, SILVER_TABLES)

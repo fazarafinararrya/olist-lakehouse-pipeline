@@ -23,6 +23,8 @@ terraform/*.tfstate
 terraform/*.tfstate.*
 terraform/terraform.tfvars
 terraform/crash.log
+terraform.exe
+terraform/terraform.exe
 
 # secrets
 .env

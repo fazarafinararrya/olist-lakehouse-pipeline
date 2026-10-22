@@ -63,15 +63,18 @@ services:
     environment:
       PREFECT_API_URL: http://prefect-server:4200/api
       SOURCE_DIR: /data/source
-      LAKE_RAW: s3a://olist-raw
-      LAKE_SILVER: s3a://olist-silver
-      LAKE_GOLD: s3a://olist-gold
-      S3_ENDPOINT_URL: http://minio:9000
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
       DQ_REPORT_DIR: /data/reports
-      SPARK_MASTER: local[2]
-      SPARK_SHUFFLE_PARTITIONS: "8"
+      LAKE_RAW: ${LAKE_RAW:-s3a://olist-raw}
+      LAKE_SILVER: ${LAKE_SILVER:-s3a://olist-silver}
+      LAKE_GOLD: ${LAKE_GOLD:-s3a://olist-gold}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL-http://minio:9000}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      AWS_REGION: ${AWS_REGION-}
+      GLUE_DATABASE_SILVER: ${GLUE_DATABASE_SILVER:-olist_silver}
+      GLUE_DATABASE_GOLD: ${GLUE_DATABASE_GOLD:-olist_gold}
+      SPARK_MASTER: ${SPARK_MASTER:-local[2]}
+      SPARK_SHUFFLE_PARTITIONS: ${SPARK_SHUFFLE_PARTITIONS:-8}
     volumes:
       - ./data:/data
       - ./src:/app/src

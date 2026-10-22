@@ -42,6 +42,8 @@ class Settings:
     aws_region: str | None
     spark_master: str
     shuffle_partitions: int
+    glue_database_silver: str = "olist_silver"
+    glue_database_gold: str = "olist_gold"
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -56,6 +58,8 @@ class Settings:
             aws_region=env("AWS_REGION") or None,
             spark_master=env("SPARK_MASTER", "local[*]"),
             shuffle_partitions=int(env("SPARK_SHUFFLE_PARTITIONS", "8")),
+            glue_database_silver=env("GLUE_DATABASE_SILVER", "olist_silver"),
+            glue_database_gold=env("GLUE_DATABASE_GOLD", "olist_gold"),
         )
 
     @property
