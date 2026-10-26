@@ -80,6 +80,7 @@ services:
       - ./src:/app/src
       - ./flows:/app/flows
       - ./tests:/app/tests
+      - ivy-cache:/root/.ivy2
     depends_on:
       - minio-init
       - prefect-server
@@ -88,3 +89,4 @@ volumes:
   minio-data:
   postgres-data:
   prefect-data:
+  ivy-cache:
