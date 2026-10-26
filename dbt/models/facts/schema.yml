@@ -1,0 +1,104 @@
+version: 2
+
+models:
+  - name: fct_order_items
+    description: >
+      Grain: one row per item within an order. Revenue by product, seller or category is
+      computed here. Measures are additive, so SUM is safe at any level.
+    tests:
+      # The grain itself: neither column is unique alone, only the pair.
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [order_id, order_item_id]
+      # The derived measure must stay consistent with its parts.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "item_total = price + freight_value"
+    columns:
+      - name: order_id
+        tests: [not_null]
+      - name: order_item_id
+        tests: [not_null]
+      - name: product_id
+        description: Foreign key to dim_products.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: product_id
+      - name: seller_id
+        description: Foreign key to dim_sellers.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_sellers')
+                field: seller_id
+      - name: customer_id
+        description: Foreign key to dim_customers.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: order_date
+        description: Foreign key to dim_date.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+      - name: price
+        description: Item price, excluding freight.
+        tests: [not_null]
+      - name: freight_value
+        tests: [not_null]
+      - name: item_total
+        description: price + freight_value.
+        tests: [not_null]
+
+  - name: fct_orders
+    description: >
+      Grain: one row per order. Items, payments and reviews are aggregated to this grain
+      before joining, so the row count must equal the number of orders in silver.
+    columns:
+      - name: order_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: customer_id
+        description: Foreign key to dim_customers.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: order_date
+        description: Foreign key to dim_date.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+      - name: order_status
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [delivered, shipped, canceled, unavailable, invoiced, processing, created, approved]
+      - name: review_score
+        description: Score of the most recent review; null for the 768 orders never reviewed.
+        tests:
+          - accepted_values:
+              arguments:
+                # review_score is an integer; without quote:false dbt compares it to
+                # string literals and Trino raises TYPE_MISMATCH.
+                values: [1, 2, 3, 4, 5]
+                quote: false
+      - name: item_count
+        description: Number of items; 0 for the 775 orders that have none.
+        tests: [not_null]

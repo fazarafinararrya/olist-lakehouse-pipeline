@@ -84,6 +84,22 @@ services:
     depends_on:
       - minio-init
       - prefect-server
+  
+  dbt:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dbt
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      AWS_REGION: ${AWS_REGION-}
+      DBT_S3_STAGING_DIR: ${DBT_S3_STAGING_DIR-}
+      DBT_S3_DATA_DIR: ${DBT_S3_DATA_DIR-}
+      GLUE_DATABASE_SILVER: ${GLUE_DATABASE_SILVER:-olist_silver}
+      GLUE_DATABASE_GOLD: ${GLUE_DATABASE_GOLD:-olist_gold}
+      ATHENA_WORKGROUP: ${ATHENA_WORKGROUP:-olist}
+    volumes:
+      - ./dbt:/dbt
 
 volumes:
   minio-data:

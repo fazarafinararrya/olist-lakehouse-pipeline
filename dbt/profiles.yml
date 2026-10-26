@@ -1,0 +1,18 @@
+olist:
+  target: dev
+  outputs:
+    dev:
+      type: athena
+
+      # Everything that differs per environment comes from .env, so this file holds no
+      # account ids or credentials and is safe to commit.
+      s3_staging_dir: "{{ env_var('DBT_S3_STAGING_DIR') }}"
+      s3_data_dir: "{{ env_var('DBT_S3_DATA_DIR') }}"
+      s3_data_naming: schema_table
+      region_name: "{{ env_var('AWS_REGION') }}"
+      work_group: "{{ env_var('ATHENA_WORKGROUP') }}"
+
+      # 'awsdatacatalog' is the name Athena gives the Glue Data Catalog.
+      database: awsdatacatalog
+      schema: "{{ env_var('GLUE_DATABASE_GOLD') }}"
+      threads: 4

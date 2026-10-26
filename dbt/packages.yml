@@ -1,0 +1,5 @@
+packages:
+  # dbt-utils adds tests that dbt core does not ship with, notably a uniqueness test
+  # across several columns (needed for the composite grain of fct_order_items).
+  - package: dbt-labs/dbt_utils
+    version: [">=1.1.0", "<2.0.0"]

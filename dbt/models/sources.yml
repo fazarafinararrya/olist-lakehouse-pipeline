@@ -1,0 +1,27 @@
+version: 2
+
+sources:
+  - name: silver
+    description: >
+      Cleaned, typed tables produced by the PySpark pipeline and registered in the
+      Glue Data Catalog. Row counts and known data issues: docs/data_profile.md.
+    database: awsdatacatalog
+    schema: "{{ env_var('GLUE_DATABASE_SILVER') }}"
+
+    tables:
+      - name: orders
+        description: One row per order, with delivery metrics and dq_* flags.
+      - name: order_items
+        description: One row per item within an order (grain of fct_order_items).
+      - name: payments
+        description: One row per payment attempt; an order can have several.
+      - name: reviews
+        description: Customer reviews; natural key is (review_id, order_id).
+      - name: customers
+        description: One row per customer_id; customer_unique_id identifies the person.
+      - name: sellers
+        description: One row per seller.
+      - name: products
+        description: Products with English category names.
+      - name: geolocation_zip
+        description: One row per zip prefix - the safe join target for customer/seller location.

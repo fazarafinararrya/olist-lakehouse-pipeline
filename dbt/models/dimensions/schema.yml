@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: >
+      One row per customer_id. Olist issues a new customer_id for every order, so
+      customer_unique_id is what identifies a person across orders.
+    columns:
+      - name: customer_id
+        description: Primary key; joins to the fact tables.
+        tests: [unique, not_null]
+      - name: customer_unique_id
+        description: Stable identifier of the person behind the orders.
+        tests: [not_null]
+      - name: customer_state
+        description: Two-letter Brazilian state code.
+        tests: [not_null]
+      - name: has_geolocation
+        description: >
+          False when the zip prefix is missing from the geolocation table (about 158
+          prefixes upstream), so latitude/longitude are null. Maps must filter on this.
+        tests: [not_null]
+
+  - name: dim_sellers
+    description: One row per seller, enriched with coordinates from the zip-prefix table.
+    columns:
+      - name: seller_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: seller_state
+        tests: [not_null]
+
+  - name: dim_products
+    description: One row per product, with English category names resolved in silver.
+    columns:
+      - name: product_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: product_category_name_english
+        description: English category; 'unknown' when the source has no category (610 products).
+        tests: [not_null]
+      - name: category_translation_source
+        description: Where the English name came from - useful when auditing 'unknown' rows.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["official", "manual_override", "untranslated", "missing"]
+
+  - name: dim_date
+    description: >
+      Calendar covering 2016-01-01 to 2018-12-31. Generated in SQL so that periods with
+      no orders still appear in reports.
+    columns:
+      - name: date_day
+        description: Primary key, one row per calendar day.
+        tests: [unique, not_null]
+      - name: is_weekend
+        tests: [not_null]

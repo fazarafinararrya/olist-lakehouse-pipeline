@@ -1,0 +1,23 @@
+name: olist_gold
+version: "1.0.0"
+config-version: 2
+
+# Which profile in profiles.yml to use for the connection.
+profile: olist
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  olist_gold:
+    # Gold tables are read over and over by BI tools, so materialise them as real
+    # Parquet tables in S3 rather than as views that re-scan silver on every query.
+    +materialized: table
+    +format: parquet
+    dimensions:
+      +tags: ["dimension"]
+    facts:
+      +tags: ["fact"]

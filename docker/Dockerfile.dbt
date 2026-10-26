@@ -1,0 +1,16 @@
+FROM python:3.11-slim-bookworm
+
+# dbt shells out to git when installing packages (dbt deps).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
+# dbt-athena allows dbt-core >= 1.8.0rc1. Because that specifier mentions a pre-release,
+# pip would otherwise pull the 1.13 beta, so pin the newest stable release explicitly.
+RUN pip install --no-cache-dir \
+    "dbt-core==1.12.6" \
+    "dbt-athena-community==1.11.1"
+
+# dbt looks for profiles.yml here; the project is mounted at the same path.
+ENV DBT_PROFILES_DIR=/dbt
+WORKDIR /dbt

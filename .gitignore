@@ -29,3 +29,9 @@ terraform/terraform.exe
 # secrets
 .env
 *.pem
+
+# dbt
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+dbt/.user.yml
