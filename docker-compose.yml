@@ -41,10 +41,18 @@ services:
       POSTGRES_PASSWORD: olist
       POSTGRES_DB: olist_source
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-    profiles: ["airbyte"]   # only needed once Airbyte is added (phase 5)
+      # COPY runs server-side, so the CSVs must be visible inside this container.
+      - ./data/source:/data/source:ro
+      - ./sql/postgres:/sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U olist -d olist_source"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    profiles: ["airbyte"]
 
   prefect-server:
     build:

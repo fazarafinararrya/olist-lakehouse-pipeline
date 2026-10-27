@@ -65,6 +65,7 @@ def test_end_to_end_local_run_is_idempotent(spark, tmp_path):
     settings = Settings(
         source_dir=src,
         lake_raw=str(tmp_path / "lake/raw"),
+        lake_landing=str(tmp_path / "lake/landing"),
         lake_silver=str(tmp_path / "lake/silver"),
         lake_gold=str(tmp_path / "lake/gold"),
         dq_report_dir=tmp_path / "reports",

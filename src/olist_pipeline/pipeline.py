@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from pyspark.sql import SparkSession
 
-from olist_pipeline import catalog, quality, raw, silver
+from olist_pipeline import catalog, landing, quality, raw, silver
 from olist_pipeline.config import SOURCE_FILES, Settings
 
 log = logging.getLogger(__name__)
@@ -27,6 +27,14 @@ def run_ingest(
 ) -> list[raw.IngestResult]:
     return [raw.ingest_table(spark, settings, t, batch_id) for t in (tables or list(SOURCE_FILES))]
 
+def run_landing_ingest(
+    spark: SparkSession, settings: Settings, batch_id: str, streams: list[str] | None = None
+) -> list[landing.LandingResult]:
+    """Primary ingestion path: Airbyte landing zone -> raw contract."""
+    return [
+        landing.ingest_stream(spark, settings, stream, batch_id)
+        for stream in (streams or list(landing.LANDING_STREAMS))
+    ]
 
 def run_silver(spark: SparkSession, settings: Settings, batch_id: str) -> dict[str, int]:
     raw_tables = {t: raw.read_raw(spark, settings, t, batch_id) for t in SOURCE_FILES}

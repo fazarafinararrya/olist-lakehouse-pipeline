@@ -101,6 +101,7 @@ def test_register_silver_tables_uses_parquet_schema(spark, tmp_path):
     settings = Settings(
         source_dir=tmp_path,
         lake_raw=str(tmp_path / "raw"),
+        lake_landing=str(tmp_path / "landing"),
         lake_silver=str(silver_dir),
         lake_gold=str(tmp_path / "gold"),
         dq_report_dir=tmp_path,

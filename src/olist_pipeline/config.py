@@ -35,6 +35,7 @@ def join_uri(base: str, *parts: str) -> str:
 class Settings:
     source_dir: Path
     lake_raw: str
+    lake_landing: str   
     lake_silver: str
     lake_gold: str
     dq_report_dir: Path
@@ -51,6 +52,9 @@ class Settings:
         return cls(
             source_dir=Path(env("SOURCE_DIR", "data/source")),
             lake_raw=normalize_uri(env("LAKE_RAW", "data/lake/raw")),
+            lake_landing=normalize_uri(
+                env("LAKE_LANDING") or join_uri(env("LAKE_RAW", "data/lake/raw"), "landing")
+            ),
             lake_silver=normalize_uri(env("LAKE_SILVER", "data/lake/silver")),
             lake_gold=normalize_uri(env("LAKE_GOLD", "data/lake/gold")),
             dq_report_dir=Path(env("DQ_REPORT_DIR", "data/reports")),
@@ -68,6 +72,9 @@ class Settings:
 
     def raw_path(self, table: str) -> str:
         return join_uri(self.lake_raw, table)
-
+    
+    def landing_path(self, stream: str) -> str:
+        return join_uri(self.lake_landing, stream)
+    
     def silver_path(self, table: str) -> str:
         return join_uri(self.lake_silver, table)

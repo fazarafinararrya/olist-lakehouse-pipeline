@@ -12,7 +12,11 @@ from olist_pipeline.spark import build_spark
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="olist-pipeline")
-    parser.add_argument("stage", choices=["ingest", "silver", "quality", "catalog", "all"])
+    parser.add_argument(
+        "stage",
+        choices=["landing", "ingest", "silver", "quality", "catalog", "all"],
+        help="'landing' is the production path (Airbyte); 'ingest' reads the CSVs offline",
+    )
     parser.add_argument("--batch-id", default=None, help="defaults to today (UTC)")
     parser.add_argument(
         "--no-fail", action="store_true", help="report data quality errors without failing"
@@ -24,7 +28,9 @@ def main(argv: list[str] | None = None) -> int:
     batch_id = args.batch_id or pipeline.default_batch_id()
     spark = build_spark(settings)
     try:
-        if args.stage in ("ingest", "all"):
+        if args.stage in ("landing", "all"):
+            pipeline.run_landing_ingest(spark, settings, batch_id)
+        if args.stage == "ingest":
             pipeline.run_ingest(spark, settings, batch_id)
         if args.stage in ("silver", "all"):
             pipeline.run_silver(spark, settings, batch_id)
