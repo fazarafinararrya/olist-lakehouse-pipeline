@@ -1,8 +1,9 @@
 FROM python:3.11-slim-bookworm
 
-# Spark 3.5 needs a JVM (17 is the safest match); procps provides `ps` that Spark scripts expect.
+# Spark 3.5 needs a JVM (17 is the safest match); procps provides `ps` that Spark scripts expect;
+# dbt shells out to git when installing packages.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends openjdk-17-jre-headless procps \
+    && apt-get install -y --no-install-recommends openjdk-17-jre-headless procps git \
     && rm -rf /var/lib/apt/lists/*
 
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
@@ -12,6 +13,16 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
 RUN pip install --no-cache-dir -e ".[dev]"
+
+# dbt lives in the same image as Prefect so the flow can run the gold build as a task.
+# It downgrades pathspec, which Prefect also uses; verified that Prefect and PySpark still work.
+# dbt-athena allows dbt-core >= 1.8.0rc1, and because that specifier names a pre-release pip would
+# otherwise pull the 1.13 beta, so pin the newest stable release explicitly.
+RUN pip install --no-cache-dir \
+    "dbt-core==1.12.6" \
+    "dbt-athena-community==1.11.1"
+
+ENV DBT_PROFILES_DIR=/dbt
 
 COPY flows ./flows
 COPY tests ./tests

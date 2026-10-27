@@ -82,7 +82,7 @@ resource "aws_athena_workgroup" "olist" {
   force_destroy = true
 
   configuration {
-    enforce_workgroup_configuration    = true
+    enforce_workgroup_configuration    = false
     publish_cloudwatch_metrics_enabled = true
     bytes_scanned_cutoff_per_query     = var.athena_bytes_scanned_cutoff
 

@@ -1,10 +1,18 @@
-# Local platform: MinIO (S3-compatible lake), Postgres (future Airbyte source), Prefect server,
-# and the pipeline image that runs Spark jobs and flows.
+# Local platform for the Olist pipeline.
 #
-#   docker compose up -d minio minio-init prefect-server
+# The production path runs against AWS (S3 + Glue + Athena) with credentials from .env:
+#   docker compose up -d prefect-server
 #   docker compose run --rm pipeline python flows/olist_flow.py
+#   docker compose run --rm dbt dbt build
+#
+# Postgres (the Airbyte source) and MinIO (an offline S3 stand-in) sit behind profiles, so
+# neither starts unless asked for:
+#   docker compose --profile airbyte up -d postgres
+#   docker compose --profile minio up -d minio minio-init
 #
 services:
+  # Offline S3 stand-in. Not part of the production path; kept so the pipeline can be run
+  # end-to-end without an AWS account.
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
@@ -21,6 +29,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    profiles: ["minio"]
 
   minio-init:
     image: minio/mc:latest
@@ -33,7 +42,10 @@ services:
       mc mb --ignore-existing local/olist-raw local/olist-silver local/olist-gold &&
       echo 'buckets ready'
       "
+    profiles: ["minio"]
 
+  # The fictional operational system Airbyte reads from.
+  # Published on 55432 because another PostgreSQL already owns 5432 on this host.
   postgres:
     image: postgres:16
     environment:
@@ -64,6 +76,10 @@ services:
     volumes:
       - prefect-data:/root/.prefect
 
+  # Spark jobs and Prefect flows. No depends_on: start whatever you need yourself, so a run
+  # never drags an unrelated service up with it.
+  # Defaults target MinIO. Copy .env.example to .env to point the same image at AWS S3
+  # (compose reads .env automatically), or override per run with `-e NAME=value`.
   pipeline:
     build:
       context: .
@@ -81,6 +97,13 @@ services:
       AWS_REGION: ${AWS_REGION-}
       GLUE_DATABASE_SILVER: ${GLUE_DATABASE_SILVER:-olist_silver}
       GLUE_DATABASE_GOLD: ${GLUE_DATABASE_GOLD:-olist_gold}
+      DBT_S3_STAGING_DIR: ${DBT_S3_STAGING_DIR-}
+      DBT_S3_DATA_DIR: ${DBT_S3_DATA_DIR-}
+      ATHENA_WORKGROUP: ${ATHENA_WORKGROUP:-olist}
+      AIRBYTE_API_URL: ${AIRBYTE_API_URL-}
+      AIRBYTE_CLIENT_ID: ${AIRBYTE_CLIENT_ID-}
+      AIRBYTE_CLIENT_SECRET: ${AIRBYTE_CLIENT_SECRET-}
+      AIRBYTE_CONNECTION_ID: ${AIRBYTE_CONNECTION_ID-}
       SPARK_MASTER: ${SPARK_MASTER:-local[2]}
       SPARK_SHUFFLE_PARTITIONS: ${SPARK_SHUFFLE_PARTITIONS:-8}
     volumes:
@@ -89,14 +112,14 @@ services:
       - ./flows:/app/flows
       - ./tests:/app/tests
       - ivy-cache:/root/.ivy2
-    depends_on:
-      - minio-init
-      - prefect-server
-  
+      - ./dbt:/dbt
+
+  # dbt lives in its own image: its dependencies downgrade packages Prefect needs.
   dbt:
     build:
       context: .
-      dockerfile: docker/Dockerfile.dbt
+      dockerfile: docker/Dockerfile.pipeline
+    working_dir: /dbt
     environment:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}

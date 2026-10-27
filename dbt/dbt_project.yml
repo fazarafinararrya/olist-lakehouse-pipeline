@@ -17,6 +17,14 @@ models:
     # Parquet tables in S3 rather than as views that re-scan silver on every query.
     +materialized: table
     +format: parquet
+
+    # Where the table files land. Setting this on the profile alone was not enough: the adapter
+    # wrote them under the Athena query-result location instead, which carries a 7-day expiry
+    # rule, so the tables would have disappeared a week after being built while their
+    # definitions stayed in the Glue catalog.
+    +s3_data_dir: "{{ env_var('DBT_S3_DATA_DIR') }}"
+    +s3_data_naming: schema_table
+
     dimensions:
       +tags: ["dimension"]
     facts:
