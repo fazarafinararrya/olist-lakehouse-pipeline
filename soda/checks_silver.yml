@@ -1,0 +1,81 @@
+# Data quality rules for the silver layer, written in SodaCL.
+#
+# These are deliberately readable by someone who does not write Python: an analyst can add a rule
+# here without touching the pipeline. The hard gate in src/olist_pipeline/quality.py stays where
+# it is - this layer is a second opinion, not a replacement.
+#
+# Row counts are the ones reconciled against the source system in docs/data_profile.md. They are
+# written as exact numbers on purpose: this dataset is a fixed historical export, so any drift
+# means something upstream changed and should be explained, not absorbed.
+
+checks for orders:
+  - row_count = 99441:
+      name: Orders match the source system exactly
+  - duplicate_count(order_id) = 0:
+      name: One row per order
+  - missing_count(order_id) = 0
+  - missing_count(customer_id) = 0:
+      name: Every order belongs to a customer
+  - invalid_count(order_status) = 0:
+      name: Order status is one of the eight known values
+      valid values:
+        - delivered
+        - shipped
+        - canceled
+        - unavailable
+        - invoiced
+        - processing
+        - created
+        - approved
+  - missing_percent(order_delivered_customer_date) < 5:
+      name: At most 5% of orders lack a delivery date
+
+checks for order_items:
+  - row_count = 112650
+  - missing_count(order_id) = 0
+  - missing_count(product_id) = 0
+  - missing_count(seller_id) = 0
+  - min(price) >= 0:
+      name: No negative prices
+  - min(freight_value) >= 0:
+      name: No negative freight
+
+checks for payments:
+  - row_count = 103886
+  - min(payment_value) >= 0
+  - invalid_count(payment_type) = 0:
+      name: Payment type is one of the five known values
+      valid values: [credit_card, boleto, voucher, debit_card, not_defined]
+
+checks for reviews:
+  - row_count = 99224
+  - missing_count(order_id) = 0
+  - invalid_count(review_score) = 0:
+      name: Review score is 1 to 5
+      valid values: [1, 2, 3, 4, 5]
+
+checks for customers:
+  - row_count = 99441
+  - duplicate_count(customer_id) = 0:
+      name: One row per customer_id
+  - missing_count(customer_state) = 0
+  - missing_count(customer_zip_code_prefix) = 0
+  - invalid_count(customer_zip_code_prefix) = 0:
+      name: Zip prefixes are five digits, zero-padded
+      valid regex: ^[0-9]{5}$
+
+checks for sellers:
+  - row_count = 3095
+  - duplicate_count(seller_id) = 0
+  - missing_count(seller_state) = 0
+
+checks for products:
+  - row_count = 32951
+  - duplicate_count(product_id) = 0
+  - missing_count(product_category_name_english) = 0:
+      name: Every product has an English category, 'unknown' included
+
+checks for geolocation_zip:
+  - row_count = 19010
+  - duplicate_count(zip_code_prefix) = 0:
+      name: One row per zip prefix, safe to join on

@@ -113,6 +113,7 @@ services:
       - ./tests:/app/tests
       - ivy-cache:/root/.ivy2
       - ./dbt:/dbt
+      - ./soda:/app/soda
 
   # dbt lives in its own image: its dependencies downgrade packages Prefect needs.
   dbt:

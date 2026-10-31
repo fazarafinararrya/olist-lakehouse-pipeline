@@ -14,7 +14,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="olist-pipeline")
     parser.add_argument(
         "stage",
-        choices=["landing", "ingest", "silver", "quality", "catalog", "all"],
+        choices=["landing", "ingest", "silver", "quality", "soda", "catalog", "all"],
         help="'landing' is the production path (Airbyte); 'ingest' reads the CSVs offline",
     )
     parser.add_argument("--batch-id", default=None, help="defaults to today (UTC)")
@@ -36,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
             pipeline.run_silver(spark, settings, batch_id)
         if args.stage in ("quality", "all"):
             pipeline.run_quality(spark, settings, batch_id, fail_on_error=not args.no_fail)
+        if args.stage in ("soda", "all"):
+            pipeline.run_soda(spark, settings, fail_on_error=not args.no_fail)
         if args.stage == "catalog":
             pipeline.run_catalog(spark, settings)
     finally:

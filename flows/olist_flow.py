@@ -12,6 +12,10 @@ batch replaces only that batch's partition and leaves every other batch untouche
 One Airbyte job syncs every stream enabled on the connection; the API cannot select a subset.
 On a memory-constrained host, disable the sync here (--skip-sync) and sync in groups from the
 Airbyte UI instead - the landing zone is the hand-off point either way.
+
+Quality runs twice on purpose: the Python checks assert business rules that need joins and
+derived columns, while Soda asserts table-level expectations that belong in a file a reviewer
+can read without reading Python. Both must pass before the catalog is updated.
 """
 
 from __future__ import annotations
@@ -78,6 +82,14 @@ def data_quality(batch_id: str, fail_on_error: bool) -> dict[str, int]:
     return summary
 
 
+@task(name="soda-checks")
+def soda_checks(fail_on_error: bool) -> dict:
+    """Declarative checks from soda/checks_silver.yml. No retries, same reason as above."""
+    summary = pipeline.run_soda(get_spark(), Settings.from_env(), fail_on_error=fail_on_error)
+    get_run_logger().info("soda: %s", summary)
+    return summary
+
+
 @task(name="register-catalog", retries=2, retry_delay_seconds=15)
 def register_catalog() -> int:
     settings = Settings.from_env()
@@ -121,6 +133,7 @@ def olist_pipeline(
     update_catalog: bool = True,
     build_gold: bool = True,
     run_airbyte_sync: bool = True,
+    run_soda: bool = True,
 ) -> dict:
     batch_id = batch_id or pipeline.default_batch_id()
     logger = get_run_logger()
@@ -140,10 +153,13 @@ def olist_pipeline(
 
     silver_counts = build_silver(batch_id, wait_for=raw_results)
     dq = data_quality(batch_id, fail_on_dq_error, wait_for=[silver_counts])
+    soda = soda_checks(fail_on_dq_error, wait_for=[dq]) if run_soda else None
 
     catalog_tables = None
     if update_catalog:
-        catalog_tables = register_catalog(wait_for=[dq])
+        # Both quality layers gate the catalog: it is the point where downstream consumers start
+        # seeing the new data, so nothing should reach it before the checks have passed.
+        catalog_tables = register_catalog(wait_for=[soda] if soda else [dq])
 
     gold = None
     if build_gold:
@@ -157,6 +173,7 @@ def olist_pipeline(
         "raw": {r["table"]: r["rows"] for r in raw_results},
         "silver": silver_counts,
         "data_quality": dq,
+        "soda": soda,
         "catalog_tables": catalog_tables,
         "gold": gold,
     }
@@ -174,6 +191,7 @@ if __name__ == "__main__":
     ap.add_argument(
         "--skip-sync", action="store_true", help="use whatever is already in the landing zone"
     )
+    ap.add_argument("--skip-soda", action="store_true", help="skip the Soda scan")
     a = ap.parse_args()
 
     print(
@@ -184,5 +202,6 @@ if __name__ == "__main__":
             update_catalog=not a.skip_catalog,
             build_gold=not a.skip_gold,
             run_airbyte_sync=not a.skip_sync,
+            run_soda=not a.skip_soda,
         )
     )

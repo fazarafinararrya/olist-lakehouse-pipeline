@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from pyspark.sql import SparkSession
 
-from olist_pipeline import catalog, landing, quality, raw, silver
+from olist_pipeline import catalog, landing, quality, raw, silver, soda_checks
 from olist_pipeline.config import SOURCE_FILES, Settings
 
 log = logging.getLogger(__name__)
@@ -60,7 +60,9 @@ def run_quality(
         quality.raise_on_errors(results)
     return results
 
-
+def run_soda(spark: SparkSession, settings: Settings, fail_on_error: bool = True) -> dict:
+    """Second data quality opinion, with the rules kept in YAML rather than Python."""
+    return soda_checks.run_scan(spark, settings, fail_on_error=fail_on_error)
 
 def run_catalog(spark: SparkSession, settings: Settings) -> list[catalog.RegisteredTable]:
     """Register the silver tables in the Glue Data Catalog (AWS only)."""
